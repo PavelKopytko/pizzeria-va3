@@ -1,210 +1,207 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DataSourceCreator2;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenuRow;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuRowDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dto.MenuRowDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.entity.MenuRow;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.entity.PizzaInfo;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.entity.api.IMenuRow;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.entity.api.IPizzaInfo;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuRowMapper;
 
 import javax.sql.DataSource;
-import java.beans.PropertyVetoException;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MenuRowDao implements IMenuRowDao {
+
+    private final static String INSERT_SQL = "INSERT INTO structure.menu_row(\n" +
+            "\tdt_create, dt_update, info, price, menu)\n" +
+            "\tVALUES ( ?, ?, ?, ?, ?);";
+
+    private final static String SELECT_BY_ID_SQL = "SELECT mr.id menu_row_id, \n" +
+            "\tmr.dt_create mr_dt_create, \n" +
+            "\tmr.dt_update mr_dt_update, \n" +
+            "\tpi.id pi_id, \n" +
+            "\tpi.dt_create pi_dt_create, \n" +
+            "\tpi.dt_update pi_dt_update, \n" +
+            "\tpi.name pi_name, \n" +
+            "\tpi.description pi_descr, \n" +
+            "\tpi.size pi_size, \n" +
+            "\tprice, \n" +
+            "\tmenu.id m_id,\n" +
+            "\tmenu.name m_name,\n" +
+            "\tmenu.dt_create m_dt_create, \n" +
+            "\tmenu.dt_update m_dt_update, \n" +
+            "\tmenu.enable m_enable\n" +
+            "\tFROM structure.menu_row mr\n" +
+            "\tINNER JOIN structure.pizza_info pi ON mr.info =pi.id\n" +
+            "\tINNER JOIN structure.menu menu ON mr.menu=menu.id\n" +
+            "\tWHERE mr.id=?;";
+
+    private final static String SELECT_SQL = "SELECT mr.id menu_row_id, \n" +
+            "\tmr.dt_create mr_dt_create, \n" +
+            "\tmr.dt_update mr_dt_update, \n" +
+            "\tpi.id pi_id, \n" +
+            "\tpi.dt_create pi_dt_create, \n" +
+            "\tpi.dt_update pi_dt_update, \n" +
+            "\tpi.name pi_name, \n" +
+            "\tpi.description pi_descr, \n" +
+            "\tpi.size pi_size, \n" +
+            "\tprice, \n" +
+            "\tmenu.id m_id,\n" +
+            "\tmenu.name m_name,\n" +
+            "\tmenu.dt_create m_dt_create, \n" +
+            "\tmenu.dt_update m_dt_update, \n" +
+            "\tmenu.enable m_enable\n" +
+            "\tFROM structure.menu_row mr\n" +
+            "\tINNER JOIN structure.pizza_info pi ON mr.info =pi.id\n" +
+            "\tINNER JOIN structure.menu menu ON mr.menu=menu.id;";
+
+    private static final String UPDATE_SQL = "UPDATE structure.menu_row\n" +
+            "\tSET dt_update=?, info=?, price=?, menu=?\n" +
+            "\tWHERE id =? and dt_update = ?;";
+
+    private static final String DELETE_SQL = "DELETE FROM structure.menu_row\n" +
+            "\tWHERE id = ? and dt_update = ?;";
+
+    private static final String UNIQ_ERROR_CODE = "23505";
+    private static final String MENU_ROW_INFO_MENU_UNIQ = "menu_row_info_menu_uniq";
+
+    private final DataSource ds;
+
+    public MenuRowDao(DataSource ds) {
+        this.ds = ds;
+    }
+
+    @Override
+    public IMenuRow create(IMenuRow item) throws DaoException {
+
+        IMenuRow menuRow = null;
+        try {
+            try (Connection con = ds.getConnection();
+                 PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
+
+                stm.setObject(1, item.getDtCreate());
+                stm.setObject(2, item.getDtUpdate());
+                stm.setLong(3, item.getInfo().getId());
+                stm.setDouble(4, item.getPrice());
+                stm.setLong(5, item.getMenu().getId());
+
+                int updated = stm.executeUpdate();
+
+                ResultSet rs = stm.getGeneratedKeys();
+                rs.next();
+                menuRow = read(rs.getLong("id"));
+
+            } catch (SQLException e) {
+                if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                    if (e.getMessage().contains(MENU_ROW_INFO_MENU_UNIQ)) {
+                        throw new RuntimeException("Ошибка, такая строка меню уже существует");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new DaoException(e);
+        }
+        return menuRow;
+    }
+
+    @Override
+    public IMenuRow read(long id) {
+
+        IMenuRow menuRow;
+
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(SELECT_BY_ID_SQL)) {
+
+            stm.setObject(1, id);
+
+            try (ResultSet rs = stm.executeQuery()) {
+                rs.next();
+                menuRow = MenuRowMapper.mapper(rs);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("При чтении данных произошла ошибка", e);
+        }
+
+
+        return menuRow;
+    }
+
     @Override
     public List<IMenuRow> get() {
 
-        DataSource dataSource = null;
-        try {
-            dataSource = DataSourceCreator2.getInstance();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (PropertyVetoException e) {
-            throw new RuntimeException(e);
-        }
+        List<IMenuRow> menuRows = new ArrayList<>();
 
-        List<IMenuRow> menuRows = null;
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(SELECT_SQL)) {
 
-        try (Connection conn = dataSource.getConnection();
-             Statement stm = conn.createStatement()) {
-
-            try (ResultSet rs = stm.executeQuery(
-                    "SELECT r.id,i.id as p_id, n.name, n.descr, i.size, r.price, r.date_update " +
-                            "FROM structure.pizza_name as n " +
-                            "inner join structure.pizza_info as i on n.id=i.name_id " +
-                            "inner join structure.menu_row as r on i.id=r.info_id;")) {
-
-                menuRows = mapList(rs);
+            try (ResultSet rs = stm.executeQuery()) {
+                while (rs.next()) {
+                    menuRows.add(MenuRowMapper.mapper(rs));
+                }
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            throw new RuntimeException("При чтении данных произошла ошибка", e);
         }
+
+
         return menuRows;
     }
 
     @Override
-    public IMenuRow get(int id) {
+    public IMenuRow update(long id, LocalDateTime dtUpdate, IMenuRow item) {
+        //IMenuRow menuRow = null;
 
-        DataSource dataSource = null;
-        try {
-            dataSource = DataSourceCreator2.getInstance();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (PropertyVetoException e) {
-            throw new RuntimeException(e);
-        }
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(UPDATE_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-        IMenuRow menuRow = null;
+            stm.setObject(1, item.getDtUpdate());
+            stm.setLong(2, item.getInfo().getId());
+            stm.setDouble(3, item.getPrice());
+            stm.setLong(4, item.getMenu().getId());
 
-        try (Connection conn = dataSource.getConnection();
-             Statement stm = conn.createStatement()) {
+            stm.setLong(5, id);
+            stm.setObject(6, dtUpdate);
 
-            try (ResultSet rs = stm.executeQuery(
-                    "SELECT r.id,i.id as p_id, n.name,n.descr, i.size, r.price, r.date_update " +
-                            "FROM structure.pizza_name as n " +
-                            "inner join structure.pizza_info as i on n.id=i.name_id " +
-                            "inner join structure.menu_row as r on i.id=r.info_id " +
-                            "where r.id =" + id + ";")) {
+            int countUpdatedRows = stm.executeUpdate();
 
-                while (rs.next()) {
-                    menuRow = map(rs);
+            if (countUpdatedRows != 1) {
+                if (countUpdatedRows == 0) {
+                    throw new IllegalArgumentException("Не смогли обновить какую либо запись");
+                } else {
+                    throw new IllegalArgumentException("Обновили более одной записи");
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            throw new RuntimeException("При сохранении данных произошла ошибка", e);
         }
 
-        return menuRow;
+        return read(id);
     }
 
     @Override
-    public void save(MenuRowDto menuRowDto) {
+    public void delete(long id, LocalDateTime dtUpdate) {
 
-        int info = menuRowDto.getInfo();
-        double price = menuRowDto.getPrice();
+        try (Connection conn = ds.getConnection();
+             PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
+        ) {
+            stm.setLong(1, id);
+            stm.setObject(2, dtUpdate);
 
-        DataSource dataSource = null;
-        try {
-            dataSource = DataSourceCreator2.getInstance();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (PropertyVetoException e) {
-            throw new RuntimeException(e);
-        }
+            int countUpdatedRows = stm.executeUpdate();
 
-        try (Connection conn = dataSource.getConnection();
-             Statement stm = conn.createStatement()) {
-
-            int executeUpdate = stm.executeUpdate(
-                    "INSERT INTO structure.menu_row(info_id, price, date_update) " +
-                            "VALUES (" + info + "," + price + ", EXTRACT(EPOCH FROM now()));");
-
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-
-    }
-
-    @Override
-    public void update(int id, int update, MenuRowDto menuRowDto) {
-
-        IMenuRow menuRow = get(id);
-
-        int info = menuRowDto.getInfo();
-        double price = menuRowDto.getPrice();
-
-
-        if (id == menuRow.getId() & update == menuRow.getUpdate()) {
-
-            DataSource dataSource = null;
-            try {
-                dataSource = DataSourceCreator2.getInstance();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            } catch (PropertyVetoException e) {
-                throw new RuntimeException(e);
+            if (countUpdatedRows != 1) {
+                if (countUpdatedRows == 0) {
+                    throw new IllegalArgumentException("Не смогли удалить какую либо запись");
+                } else {
+                    throw new IllegalArgumentException("Удалили более одной записи");
+                }
             }
-
-            try (Connection conn = dataSource.getConnection();
-                 Statement stm = conn.createStatement()) {
-
-                int executeUpdate = stm.executeUpdate(
-                        "UPDATE structure.menu_row " +
-                                "SET info_id=" + info + ", price=" + price + ", date_update=EXTRACT(EPOCH FROM now()) " +
-                                "WHERE id =" + id + ";");
-
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-    }
-
-    @Override
-    public void delete(int id, int update) {
-
-        DataSource dataSource = null;
-        try {
-            dataSource = DataSourceCreator2.getInstance();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (PropertyVetoException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("При удалении данных произошла ошибка", e);
         }
 
-
-        try (Connection conn = dataSource.getConnection();
-             Statement stm = conn.createStatement()) {
-
-            int executeUpdate = stm.executeUpdate(
-                    "DELETE FROM structure.menu_row " +
-                            " WHERE id = " + id + " and date_update = " + update + ";");
-
-        } catch (
-                SQLException e) {
-            System.out.println(e.getMessage());
-        }
-
-    }
-
-    private IMenuRow map(ResultSet rs) throws SQLException {
-        IMenuRow menuRow = new MenuRow();
-        menuRow.setId(rs.getLong("id"));
-
-        IPizzaInfo pizzaInfo = new PizzaInfo();
-        pizzaInfo.setId(rs.getLong("p_id"));
-        pizzaInfo.setName(rs.getString("name"));
-        pizzaInfo.setDescription(rs.getString("descr"));
-        pizzaInfo.setSize(rs.getLong("size"));
-        menuRow.setInfo(pizzaInfo);
-        menuRow.setPrice(rs.getDouble("price"));
-        menuRow.setUpdate(rs.getLong("date_update"));
-        return menuRow;
-    }
-
-    public List<IMenuRow> mapList(ResultSet rs) throws SQLException {
-        List<IMenuRow> menuRows = new ArrayList<>();
-        while (rs.next()) {
-            menuRows.add(map(rs));
-        }
-        return menuRows;
     }
 }

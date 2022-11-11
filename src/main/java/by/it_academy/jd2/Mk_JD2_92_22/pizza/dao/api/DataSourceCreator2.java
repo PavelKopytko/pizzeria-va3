@@ -14,7 +14,7 @@ public class DataSourceCreator2 {
     private DataSourceCreator2() throws IOException, SQLException, PropertyVetoException {
         cpds = new ComboPooledDataSource();
         cpds.setDriverClass("org.postgresql.Driver");
-        cpds.setJdbcUrl("jdbc:postgresql://localhost:5432/pizza-var2");
+        cpds.setJdbcUrl("jdbc:postgresql://localhost:5432/pizzeria");
         cpds.setUser("postgres");
         cpds.setPassword("postgres");
         cpds.setMinPoolSize(5);

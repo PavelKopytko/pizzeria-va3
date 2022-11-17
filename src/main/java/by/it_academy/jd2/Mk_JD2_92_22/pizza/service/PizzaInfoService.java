@@ -24,16 +24,19 @@ public class PizzaInfoService implements IPizzaInfoService {
 
     @Override
     public PizzaInfoDto create(PizzaInfoDto item) throws ServiceException {
-        try {
+
             validate(item);
 
-            IPizzaInfo pizzaInfo = pizzaInfoDao.create(mapper(item));
-
-            return mapperDto(pizzaInfo);
-
-        } catch (IllegalStateException | IllegalArgumentException | DaoException e) {
+        IPizzaInfo pizzaInfo = null;
+        try {
+            pizzaInfo = pizzaInfoDao.create(mapper(item));
+        } catch (DaoException e) {
             throw new ServiceException(e);
         }
+
+        return mapperDto(pizzaInfo);
+
+
     }
 
     @Override

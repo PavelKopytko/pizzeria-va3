@@ -3,8 +3,7 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.MenuServiceSingleton;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -21,10 +20,12 @@ import java.util.List;
 @WebServlet(name = "MenuServlet", urlPatterns = "/menu")
 public class MenuServlet extends HttpServlet {
 
-    private IMenuService menuService;
+    private final IMenuService menuService;
     private final ObjectMapper mapper;
     private final String CHARSET = "UTF-8";
     private final String CONTENT_TYPE = "application/json";
+    private final String ID = "id";
+    private final String DT_UPDATE = "update";
 
 
     public MenuServlet() {
@@ -49,13 +50,18 @@ public class MenuServlet extends HttpServlet {
 
         if (queryString == null) {
 
-            List<MenuDto> menus = menuService.get();
-
+            List<MenuDto> menus = null;
+            try {
+                menus = menuService.get();
+            } catch (ServiceException e) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
             writer.write(this.mapper.writeValueAsString(menus));
 
         } else {
 
-            String idParam = req.getParameter("id");
+            String idParam = req.getParameter(ID);
 
             long id;
 
@@ -66,12 +72,21 @@ public class MenuServlet extends HttpServlet {
                 return;
             }
 
-            MenuDto menus = menuService.read(id);
+            MenuDto menus = null;
+            try {
+                menus = menuService.read(id);
+            } catch (IDServiceException e) {
+                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                return;
+            } catch (ServiceException e) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
 
             try {
                 writer.write(this.mapper.writeValueAsString(menus));
             } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         }
     }
@@ -99,8 +114,14 @@ public class MenuServlet extends HttpServlet {
 
         try {
             menu = this.menuService.create(menuDto);
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
+            return;
+        } catch (ValidateException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
         } catch (ServiceException e) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
 
@@ -110,8 +131,8 @@ public class MenuServlet extends HttpServlet {
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
 
-
     }
+
 
     //UPDATE POSITION
     //need param id
@@ -120,8 +141,8 @@ public class MenuServlet extends HttpServlet {
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-        String idParam = req.getParameter("id");
-        String updateParam = req.getParameter("update");
+        String idParam = req.getParameter(ID);
+        String updateParam = req.getParameter(DT_UPDATE);
 
         long id;
         long update;
@@ -133,9 +154,28 @@ public class MenuServlet extends HttpServlet {
             return;
         }
 
-        MenuDto menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
+        MenuDto menuDto = null;
 
-        menuService.update(id, update, menuDto);
+        try {
+            menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+
+        try {
+            menuService.update(id, update, menuDto);
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        } catch (ValidateException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
 
@@ -147,8 +187,8 @@ public class MenuServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-        String idParam = req.getParameter("id");
-        String updateParam = req.getParameter("update");
+        String idParam = req.getParameter(ID);
+        String updateParam = req.getParameter(DT_UPDATE);
 
         long id;
         long update;
@@ -160,6 +200,15 @@ public class MenuServlet extends HttpServlet {
             return;
         }
 
-        menuService.delete(id, update);
+        try {
+            menuService.delete(id, update);
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
+        }
     }
+
 }
+
+

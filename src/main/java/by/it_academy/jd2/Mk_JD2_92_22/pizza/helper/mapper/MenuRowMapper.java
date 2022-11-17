@@ -13,6 +13,22 @@ import java.time.ZoneOffset;
 
 public class MenuRowMapper {
 
+    private final PizzaInfoMapper pizzaInfoMapper;
+
+    public MenuRowMapper(PizzaInfoMapper pizzaInfoMapper) {
+        this.pizzaInfoMapper = pizzaInfoMapper;
+    }
+
+    public MenuRowDto mapperDto(IMenuRow item) {
+        return new MenuRowDto(
+                item.getId(),
+                item.getDtUpdate().toEpochSecond(ZoneOffset.UTC),
+                item.getInfo().getId(),
+                pizzaInfoMapper.mapperDto(item.getInfo()),
+                item.getPrice()
+        );
+    }
+
     public static IMenuRow mapper(ResultSet rs) throws SQLException {
 
         return new MenuRow(
@@ -25,15 +41,15 @@ public class MenuRowMapper {
         );
     }
 
-    public static MenuRowDto mapperDto(IMenuRow item) {
-        return new MenuRowDto(
-                item.getId(),
-                item.getDtUpdate().toEpochSecond(ZoneOffset.UTC),
-                item.getInfo().getId(),
-                item.getPrice(),
-                item.getMenu().getId()
-        );
-    }
+//    public static MenuRowDto mapperDto(IMenuRow item) {
+//        return new MenuRowDto(
+//                item.getId(),
+//                item.getDtUpdate().toEpochSecond(ZoneOffset.UTC),
+//                item.getInfo().getId(),
+//                item.getPrice(),
+//                item.getMenu().getId()
+//        );
+//    }
 
     public static IMenuRow mapperDtoToEntity(MenuRowDto item, IPizzaInfo pizzaInfo, IMenu menu) {
         LocalDateTime localDateTime = LocalDateTime.now();

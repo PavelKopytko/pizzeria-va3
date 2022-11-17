@@ -28,6 +28,14 @@ public class MenuRow implements IMenuRow {
         this.menu = menu;
     }
 
+    public MenuRow(long id, LocalDateTime dtCreate, LocalDateTime dtUpdate, IPizzaInfo info, double price) {
+        this.id = id;
+        this.dtCreate = dtCreate;
+        this.dtUpdate = dtUpdate;
+        this.info = info;
+        this.price = price;
+    }
+
     public MenuRow(long id, LocalDateTime dtCreate, LocalDateTime dtUpdate, IPizzaInfo info, double price, IMenu menu) {
         this.id = id;
         this.dtCreate = dtCreate;

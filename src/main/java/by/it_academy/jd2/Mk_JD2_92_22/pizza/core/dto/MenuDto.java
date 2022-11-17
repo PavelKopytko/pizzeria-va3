@@ -1,12 +1,15 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto;
 
 
+import java.util.List;
+
 public class MenuDto {
 
     private long id;
     private long dtUpdate;
     private String name;
     private boolean enable;
+    private List<MenuRowDto> items;
 
     public MenuDto() {
     }
@@ -16,6 +19,19 @@ public class MenuDto {
         this.dtUpdate = dtUpdate;
         this.name = name;
         this.enable = enable;
+    }
+
+    public MenuDto(long id, long dtUpdate, String name) {
+        this.id = id;
+        this.dtUpdate = dtUpdate;
+        this.name = name;
+    }
+
+    public MenuDto(long id, long dtUpdate, String name, List<MenuRowDto> items) {
+        this.id = id;
+        this.dtUpdate = dtUpdate;
+        this.name = name;
+        this.items = items;
     }
 
     public long getId() {
@@ -48,5 +64,13 @@ public class MenuDto {
 
     public void setEnable(boolean enable) {
         this.enable = enable;
+    }
+
+    public List<MenuRowDto> getItems() {
+        return items;
+    }
+
+    public void setItems(List<MenuRowDto> items) {
+        this.items = items;
     }
 }

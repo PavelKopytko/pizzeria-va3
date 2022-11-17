@@ -13,10 +13,10 @@ public class StageMapper {
 
     public static IStage mapper(ResultSet rs) throws SQLException {
         return new Stage(
-                rs.getLong("id"),
-                rs.getObject("dt_create", LocalDateTime.class),
-                rs.getObject("dt_update", LocalDateTime.class),
-                rs.getString("description")
+                rs.getLong("s_id"),
+                rs.getObject("s_dt_create", LocalDateTime.class),
+                rs.getObject("s_dt_update", LocalDateTime.class),
+                rs.getString("s_description")
         );
     }
 

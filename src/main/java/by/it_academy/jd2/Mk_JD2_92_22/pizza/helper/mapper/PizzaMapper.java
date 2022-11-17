@@ -31,8 +31,4 @@ public class PizzaMapper {
                 order);
     }
 
-//    public static ITicket mapperToEntity(IOrder order) {
-//        LocalDateTime localDateTime = LocalDateTime.now();
-//        return new Ticket(localDateTime, localDateTime, "ticketNumber", order);
-//    }
 }

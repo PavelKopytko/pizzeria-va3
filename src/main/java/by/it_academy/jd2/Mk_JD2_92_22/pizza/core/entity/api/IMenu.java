@@ -20,6 +20,7 @@ public interface IMenu {
 
     /**
      * Получить название меню
+     *
      * @return
      */
     String getName();
@@ -28,6 +29,7 @@ public interface IMenu {
 
     /**
      * Доступные к заказу пункты
+     *
      * @return пункты которые можно заказать
      */
     List<IMenuRow> getItems();
@@ -35,9 +37,12 @@ public interface IMenu {
 
     /**
      * Меню доступно к использованию для заказа?
+     *
      * @return
      */
     boolean isEnable();
 
     void setEnable(boolean enable);
+
+    void setItems(List<IMenuRow> items);
 }

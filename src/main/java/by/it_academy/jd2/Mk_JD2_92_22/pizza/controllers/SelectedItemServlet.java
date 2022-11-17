@@ -101,8 +101,7 @@ public class SelectedItemServlet extends HttpServlet {
         try {
             dto = this.service.create(selectedItemDto);
         } catch (ServiceException e) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            return;
+            throw new RuntimeException(e);
         }
 
         PrintWriter writer = resp.getWriter();

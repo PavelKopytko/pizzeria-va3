@@ -1,17 +1,19 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper;
 
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Menu;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenu;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenuRow;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.time.ZoneOffset;
 
 public class MenuFullMapper {
 
-    public static IMenu mapper(ResultSet rs) throws SQLException {
-        IMenuRow menuRow = MenuRowMapper.mapper(rs);
-        return new Menu(
+    public MenuDto mapperDto(IMenu item){
+        return new MenuDto(
+                item.getId(),
+                item.getDtUpdate().toEpochSecond(ZoneOffset.UTC),
+                item.getName(),
+                item.isEnable()
         );
+
     }
 }

@@ -19,6 +19,15 @@ public class OrderStatus implements IOrderStatus {
     public OrderStatus() {
     }
 
+    public OrderStatus(long id, LocalDateTime dtCreate, LocalDateTime dtUpdate, ITicket ticket, boolean isDone, List<IStage> history) {
+        this.id = id;
+        this.dtCreate = dtCreate;
+        this.dtUpdate = dtUpdate;
+        this.ticket = ticket;
+        this.isDone = isDone;
+        this.history = history;
+    }
+
     public long getId() {
         return id;
     }

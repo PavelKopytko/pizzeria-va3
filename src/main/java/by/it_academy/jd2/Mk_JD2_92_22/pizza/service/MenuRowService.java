@@ -2,15 +2,13 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
 
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuRowDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.PizzaInfoDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.MenuRow;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.PizzaInfo;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenu;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenuRow;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IPizzaInfo;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuRowDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuRowMapper;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.PizzaInfoMapper;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuRowService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 
@@ -37,17 +35,17 @@ public class MenuRowService implements IMenuRowService {
 
             List<IMenuRow> menuRows = menuRowDao.get();
             for (IMenuRow menuRow : menuRows) {
-                if (item.getInfo() == menuRow.getInfo().getId()) {
+                if (item.getInfoId() == menuRow.getInfo().getId()) {
                     pizzaInfo = menuRow.getInfo();
                 }
-                if (item.getMenu() == menuRow.getMenu().getId()) {
+                if (item.getMenuId() == menuRow.getMenu().getId()) {
                     menu = menuRow.getMenu();
                 }
             }
 
             IMenuRow menuRow = menuRowDao.create(MenuRowMapper.mapperDtoToEntity(item, pizzaInfo, menu));
 
-            return MenuRowMapper.mapperDto(menuRow);
+            return new MenuRowMapper(new PizzaInfoMapper()).mapperDto(menuRow);//MenuRowMapper.mapperDto(menuRow);
 
         } catch (IllegalStateException | IllegalArgumentException | DaoException e) {
             throw new ServiceException(e);
@@ -59,7 +57,7 @@ public class MenuRowService implements IMenuRowService {
 
         IMenuRow menuRow = menuRowDao.read(id);
 
-        return MenuRowMapper.mapperDto(menuRow);
+        return null;//MenuRowMapper.mapperDto(menuRow);
 
     }
 
@@ -68,9 +66,9 @@ public class MenuRowService implements IMenuRowService {
 
         List<MenuRowDto> menuRowDtos = new ArrayList<>();
 
-        for (IMenuRow menuRow : menuRowDao.get()) {
-            menuRowDtos.add(MenuRowMapper.mapperDto(menuRow));
-        }
+//        for (IMenuRow menuRow : menuRowDao.get()) {
+//            menuRowDtos.add(MenuRowMapper.mapperDto(menuRow));
+//        }
 
         return menuRowDtos;
     }
@@ -95,7 +93,7 @@ public class MenuRowService implements IMenuRowService {
 
         menuRowDao.update(id, localDateTime, readed);
 
-        return MenuRowMapper.mapperDto(readed);
+        return null;//MenuRowMapper.mapperDto(readed);
     }
 
     @Override
@@ -111,13 +109,13 @@ public class MenuRowService implements IMenuRowService {
         if (item == null) {
             throw new IllegalStateException("Вы не передали строку меню");
         }
-        if (item.getInfo() <= 0) {
+        if (item.getInfoId() <= 0) {
             throw new IllegalArgumentException("Вы не заполнили инфо");
         }
         if (item.getPrice() <= 0) {
             throw new IllegalArgumentException("Вы не заполнили цену");
         }
-        if (item.getMenu() <= 0) {
+        if (item.getMenuId() <= 0) {
             throw new IllegalArgumentException("Вы не указали меню");
         }
         List<IMenuRow> menuRows = menuRowDao.get();
@@ -125,7 +123,7 @@ public class MenuRowService implements IMenuRowService {
         int count = 0;
 
         for (IMenuRow menuRow : menuRows) {
-            if (item.getInfo() == menuRow.getInfo().getId()) {
+            if (item.getInfoId() == menuRow.getInfo().getId()) {
                 count++;
             }
         }

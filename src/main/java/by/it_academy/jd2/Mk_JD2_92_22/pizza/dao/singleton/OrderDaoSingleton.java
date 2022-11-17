@@ -1,8 +1,8 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton;
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.OrderDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DataSourceCreator2;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IOrderDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IPizzaInfoDao;
 
 public class OrderDaoSingleton {
 

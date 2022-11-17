@@ -17,12 +17,18 @@ public class StageDao implements IStageDao {
             "\tdt_create, dt_update, description)\n" +
             "\tVALUES ( ?, ?, ?);";
 
-    private final static String SELECT_BY_ID_SQL = "SELECT id, dt_create, dt_update, description\n" +
-            "\tFROM structure.stage\n" +
-            "\tWHERE id =?;";
+    private final static String SELECT_BY_ID_SQL = "SELECT s.id s_id, \n" +
+            "\ts.dt_create s_dt_create,\n" +
+            "\ts.dt_update s_dt_update,\n" +
+            "\ts.description s_description\n" +
+            "\tFROM structure.stage s\n" +
+            "\tWHERE s.id = ? ;";
 
-    private final static String SELECT_SQL = "SELECT id, dt_create, dt_update, description\n" +
-            "\tFROM structure.stage;";
+    private final static String SELECT_SQL = "SELECT s.id s_id, \n" +
+            "\ts.dt_create s_dt_create,\n" +
+            "\ts.dt_update s_dt_update,\n" +
+            "\ts.description s_description\n" +
+            "\tFROM structure.stage s;";
 
     private static final String UPDATE_SQL = "UPDATE structure.stage\n" +
             "\tSET dt_update=?, description=?\n" +

@@ -1,9 +1,9 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.StageDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.StageServiceSingleton;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IStageService;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.SelectedItemDto;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.SelectedItemServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ISelectedItemService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -17,41 +17,39 @@ import java.io.PrintWriter;
 import java.util.List;
 
 //CRUD controller
-//IMenuRow
-@WebServlet(name = "StageServlet", urlPatterns = "/stage")
-public class StageServlet extends HttpServlet {
+//IOrderSt
+@WebServlet(name = "OrderStatusServlet", urlPatterns = "/order-status")
+public class OrderStatusServlet extends HttpServlet {
 
-    private IStageService stageService;
+    private ISelectedItemService service;
     private final ObjectMapper mapper;
-    private final String CHARSET = "UTF-8";
-    private final String CONTENT_TYPE = "application/json";
-    private final String ID = "id";
-    private final String DT_UPDATE = "update";
+    private static final String CHARSET = "UTF-8";
+    private static final String CONTENT_TYPE = "application/json";
+    private final static String ID = "id";
+    private final static String DT_UPDATE = "update";
 
-
-    public StageServlet() {
-        this.stageService = StageServiceSingleton.getInstance();
+    public OrderStatusServlet() {
+        this.service = SelectedItemServiceSingleton.getInstance();
         this.mapper = new ObjectMapper();
     }
 
     //Read POSITION
-    //1) Read list
-    //2) Read item (card) need id param
+    //1) Read item (card) need id param ticket
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding(CHARSET);
-        resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
         String queryString = req.getQueryString();
 
         PrintWriter writer = resp.getWriter();
 
+
         if (queryString == null) {
 
-            List<StageDto> items = stageService.get();
+            List<SelectedItemDto> selectedItemDtos = service.get();
 
-            writer.write(this.mapper.writeValueAsString(items));
+            writer.write(this.mapper.writeValueAsString(selectedItemDtos));
 
         } else {
 
@@ -66,10 +64,10 @@ public class StageServlet extends HttpServlet {
                 return;
             }
 
-            StageDto items = stageService.read(id);
+            SelectedItemDto selectedItemDto = service.read(id);
 
             try {
-                writer.write(this.mapper.writeValueAsString(items));
+                writer.write(this.mapper.writeValueAsString(selectedItemDto));
             } catch (IOException e) {
                 resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             }
@@ -81,64 +79,32 @@ public class StageServlet extends HttpServlet {
     //body json
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.setCharacterEncoding(CHARSET);
-        resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
+        SelectedItemDto dto;
 
-        StageDto stageDto;
         try {
-            stageDto = this.mapper.readValue(req.getInputStream(), StageDto.class);
+            dto = this.mapper.readValue(req.getInputStream(), SelectedItemDto.class);
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        StageDto stageDtoOut;
+        SelectedItemDto dtoOut;
 
         try {
-            stageDtoOut = this.stageService.create(stageDto);
+            dtoOut = this.service.create(dto);
         } catch (ServiceException e) {
-            throw new RuntimeException(e);
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            return;
         }
 
         PrintWriter writer = resp.getWriter();
 
-        writer.write(this.mapper.writeValueAsString(stageDtoOut));
+        writer.write(this.mapper.writeValueAsString(dtoOut));
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
 
-
-    }
-
-    //UPDATE POSITION
-    //need param id
-    //need param version/date_update - optimistic lock
-    //body json
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.setCharacterEncoding(CHARSET);
-        resp.setCharacterEncoding(CHARSET);
-        resp.setContentType(CONTENT_TYPE);
-
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
-        try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        StageDto itemDto = this.mapper.readValue(req.getInputStream(), StageDto.class);
-
-        stageService.update(id, update, itemDto);
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
 
     }
 
@@ -147,7 +113,6 @@ public class StageServlet extends HttpServlet {
     //need param version/date_update - optimistic lock
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.setCharacterEncoding(CHARSET);
 
         String idParam = req.getParameter(ID);
         String updateParam = req.getParameter(DT_UPDATE);
@@ -162,6 +127,6 @@ public class StageServlet extends HttpServlet {
             return;
         }
 
-        stageService.delete(id, update);
+        service.delete(id, update);
     }
 }

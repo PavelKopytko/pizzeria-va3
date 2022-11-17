@@ -2,7 +2,6 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.PizzaInfo;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IPizzaInfo;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IPizzaInfoDao;
 
 import javax.sql.DataSource;
@@ -41,7 +40,7 @@ public class PizzaInfoDao implements IPizzaInfoDao {
     }
 
     @Override
-    public IPizzaInfo create(IPizzaInfo item) throws DaoException {
+    public IPizzaInfo create(IPizzaInfo item) {
 
         IPizzaInfo pizzaInfo = null;
         try {
@@ -68,7 +67,7 @@ public class PizzaInfoDao implements IPizzaInfoDao {
                 }
             }
         } catch (Exception e){
-            throw new DaoException(e);
+            throw new RuntimeException(e);
         }
         return pizzaInfo;
     }

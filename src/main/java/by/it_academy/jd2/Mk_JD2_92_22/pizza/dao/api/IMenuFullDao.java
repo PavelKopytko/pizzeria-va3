@@ -9,4 +9,5 @@ public interface IMenuFullDao {
     IMenu read(long id);
 
     List<IMenu> get();
+    boolean isExist(long id);
 }

@@ -5,13 +5,15 @@ import java.util.List;
 
 public interface IDao<TYPE> {
 
-    TYPE create(TYPE item) throws DaoException;
+    TYPE create(TYPE item) throws DaoException;//, NotUniqDaoException;
 
-    TYPE read(long id);
+    TYPE read(long id);// throws DaoException;
 
-    List<TYPE> get();
+    List<TYPE> get();// throws DaoException;
 
-    TYPE update(long id, LocalDateTime dtUpdate, TYPE item);
+    TYPE update(long id, LocalDateTime dtUpdate, TYPE item);// throws DaoException;
 
-    void delete(long id, LocalDateTime dtUpdate);
+    void delete(long id, LocalDateTime dtUpdate);// throws DaoException;
+
+    //boolean isExist(long id);// throws DaoException;
 }

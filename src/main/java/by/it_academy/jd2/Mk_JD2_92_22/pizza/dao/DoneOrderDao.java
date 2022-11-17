@@ -1,9 +1,10 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.DoneOrder;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IDoneOrder;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IDoneOrderDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.DoneOrderMapper;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.TicketMapper;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -80,7 +81,7 @@ public class DoneOrderDao implements IDoneOrderDao {
 
             try (ResultSet rs = stm.executeQuery()) {
                 rs.next();
-                doneOrder = DoneOrderMapper.mapper(rs);
+                doneOrder = mapper(rs);
             }
 
         } catch (SQLException e) {
@@ -99,7 +100,7 @@ public class DoneOrderDao implements IDoneOrderDao {
 
             try (ResultSet rs = stm.executeQuery()) {
                 while (rs.next()) {
-                    items.add(DoneOrderMapper.mapper(rs));
+                    items.add(mapper(rs));
                 }
             }
 
@@ -131,5 +132,13 @@ public class DoneOrderDao implements IDoneOrderDao {
         } catch (SQLException e) {
             throw new RuntimeException("При удалении данных произошла ошибка", e);
         }
+    }
+    private IDoneOrder mapper(ResultSet rs) throws SQLException {
+        return new DoneOrder(
+                rs.getLong("don_id"),
+                rs.getObject("don_dt_create", LocalDateTime.class),
+                rs.getObject("don_dt_update", LocalDateTime.class),
+                TicketMapper.mapper(rs)
+        );
     }
 }

@@ -1,12 +1,12 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
 
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Menu;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenu;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuDao;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.NotUniqDaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -23,53 +23,74 @@ public class MenuService implements IMenuService {
     }
 
     @Override
-    public MenuDto create(MenuDto menuDto) throws ServiceException {
+    public MenuDto create(MenuDto menuDto) throws ServiceException, ValidateException, NotUniqServiceException {
 
-        IMenu menu;
+        IMenu menu = null;
 
-        try{
+        try {
+            validate(menuDto);
+            menu = menuDao.create(mapper(menuDto));
 
-        validate(menuDto);
-
-        menu = menuDao.create(mapper(menuDto));}
-
-        catch (Exception e){ ///это неправильно
-            throw new ServiceException(e);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw new ValidateException(e.getMessage(), e);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        } catch (NotUniqDaoException e) {
+            throw new NotUniqServiceException(e.getMessage(), e);
         }
-
-        //item.setDtCreate(LocalDateTime.now());
-        //item.setDtUpdate(LocalDateTime.now());
-        //validate
 
         return mapperDto(menu);
     }
 
     @Override
-    public MenuDto read(long id) {
+    public MenuDto read(long id) throws ServiceException, IDServiceException {
+        IMenu iMenu = null;
 
-        IMenu iMenu = menuDao.read(id);
+        try {
+            if (menuDao.isExist(id)) {
+                iMenu = menuDao.read(id);
+            } else {
+                throw new IDServiceException("Такого id не существует");
+            }
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
 
         return mapperDto(iMenu);
     }
 
     @Override
-    public List<MenuDto> get() {
+    public List<MenuDto> get() throws ServiceException {
         List<MenuDto> menuDtos = new ArrayList<>();
 
-        for (IMenu menu : menuDao.get()) {
-            menuDtos.add(mapperDto(menu));
+        try {
+            for (IMenu menu : menuDao.get()) {
+                menuDtos.add(mapperDto(menu));
+            }
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
         }
 
         return menuDtos;
     }
 
     @Override
-    public MenuDto update(long id, long dtUpdate, MenuDto item) {
+    public MenuDto update(long id, long dtUpdate, MenuDto item) throws ServiceException, ValidateException {
 
         LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(dtUpdate, 0, ZoneOffset.UTC);
 
+        try{
+            validate(item);
+        }catch (IllegalStateException | IllegalArgumentException e) {
+            throw new ValidateException(e.getMessage(), e);
+        }
 
-        IMenu readed = menuDao.read(id);
+        IMenu readed = null;
+        try {
+            readed = menuDao.read(id);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
 
         if (readed == null) {
             throw new IllegalArgumentException("Меню не найдено");
@@ -81,16 +102,29 @@ public class MenuService implements IMenuService {
         readed.setDtUpdate(LocalDateTime.now());
         readed.setName(item.getName());
         readed.setEnable(item.isEnable());
-        menuDao.update(id, localDateTime, readed);
+
+        try {
+            menuDao.update(id, localDateTime, readed);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        } catch (IllegalArgumentException e){
+            throw new IllegalArgumentException(e.getMessage(),e);
+        }
         return null;// переделать + маппер
     }
 
     @Override
-    public void delete(long id, long dtUpdate) {
+    public void delete(long id, long dtUpdate) throws ServiceException {
 
         LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(dtUpdate, 0, ZoneOffset.UTC);
 
-        this.menuDao.delete(id, localDateTime);
+        try {
+            this.menuDao.delete(id, localDateTime);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(),e);
+        } catch (IllegalArgumentException e){
+            throw new IllegalArgumentException(e.getMessage(),e);
+        }
 
     }
 

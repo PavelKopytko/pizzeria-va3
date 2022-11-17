@@ -102,4 +102,8 @@ public class Menu implements IMenu {
     public void setEnable(boolean enable) {
         this.enable = enable;
     }
+
+    public void setItems(List<IMenuRow> items) {
+        this.items = items;
+    }
 }

@@ -3,9 +3,10 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto;
 public class MenuRowDto {
     private long id;
     private long dt_update;
-    private long info;
+    private long infoId;
+    private PizzaInfoDto info;
     private double price;
-    private long menu;
+    private long menuId;
 
     public MenuRowDto() {
     }
@@ -13,9 +14,24 @@ public class MenuRowDto {
     public MenuRowDto(long id, long dt_update, long info, double price, long menu) {
         this.id = id;
         this.dt_update = dt_update;
+        this.infoId = info;
+        this.price = price;
+        this.menuId = menu;
+    }
+
+    public MenuRowDto(long id, long dt_update, long infoId, PizzaInfoDto info, double price) {
+        this.id = id;
+        this.dt_update = dt_update;
+        this.infoId = infoId;
         this.info = info;
         this.price = price;
-        this.menu = menu;
+    }
+
+    public MenuRowDto(long id, long dt_update, PizzaInfoDto info, double price) {
+        this.id = id;
+        this.dt_update = dt_update;
+        this.info = info;
+        this.price = price;
     }
 
     public long getId() {
@@ -34,12 +50,12 @@ public class MenuRowDto {
         this.dt_update = dt_update;
     }
 
-    public long getInfo() {
-        return info;
+    public long getInfoId() {
+        return infoId;
     }
 
-    public void setInfo(long info) {
-        this.info = info;
+    public void setInfoId(long infoId) {
+        this.infoId = infoId;
     }
 
     public double getPrice() {
@@ -50,11 +66,19 @@ public class MenuRowDto {
         this.price = price;
     }
 
-    public long getMenu() {
-        return menu;
+    public long getMenuId() {
+        return menuId;
     }
 
-    public void setMenu(long menu) {
-        this.menu = menu;
+    public void setMenuId(long menuId) {
+        this.menuId = menuId;
+    }
+
+    public PizzaInfoDto getInfo() {
+        return info;
+    }
+
+    public void setInfo(PizzaInfoDto info) {
+        this.info = info;
     }
 }

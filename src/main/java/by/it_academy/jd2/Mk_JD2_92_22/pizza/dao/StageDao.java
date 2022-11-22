@@ -1,7 +1,6 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IStage;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IStageDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.StageMapper;
 
@@ -11,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StageDao implements IStageDao {
+public class StageDao implements IStageDao<IStage> {
 
     private final static String INSERT_SQL = "INSERT INTO structure.stage(\n" +
             "\tdt_create, dt_update, description)\n" +
@@ -47,7 +46,7 @@ public class StageDao implements IStageDao {
     }
 
     @Override
-    public IStage create(IStage item) throws DaoException {
+    public IStage create(IStage item){ //throws DaoException {
 
         IStage stage = null;
         try {
@@ -68,7 +67,7 @@ public class StageDao implements IStageDao {
                 throw new RuntimeException("При сохранении данных произошла ошибка", e);
             }
         } catch (Exception e) {
-            throw new DaoException(e);
+            throw new RuntimeException(e);
         }
         return stage;
     }

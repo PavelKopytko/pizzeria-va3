@@ -13,17 +13,18 @@ import java.time.ZoneOffset;
 
 public class SelectedItemMapper {
     public static ISelectedItem mapper(ResultSet rs) throws SQLException {
-        return new SelectedItem(
-                rs.getLong("si_id"),
-                rs.getObject("si_dt_create", LocalDateTime.class),
-                rs.getObject("si_dt_update", LocalDateTime.class),
-                MenuRowMapper.mapper(rs),
-                rs.getInt("count"),
-                OrderMapper.mapper(rs)
-        );
+//        return new SelectedItem(
+//                rs.getLong("si_id"),
+//                rs.getObject("si_dt_create", LocalDateTime.class),
+//                rs.getObject("si_dt_update", LocalDateTime.class),
+//                MenuRowMapper.mapper(rs),
+//                rs.getInt("count"),
+//                OrderMapper.mapper(rs)
+//        );
+        return null;
     }
 
-    public static SelectedItemDto   mapperDto(ISelectedItem item) {
+    public static SelectedItemDto mapperDto(ISelectedItem item) {
         return new SelectedItemDto(
                 item.getId(),
                 item.getDtUpdate().toEpochSecond(ZoneOffset.UTC),

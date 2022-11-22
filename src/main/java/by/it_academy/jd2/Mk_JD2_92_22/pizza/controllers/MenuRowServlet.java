@@ -1,10 +1,14 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers.util.mapper.ObjectMapperSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuRowDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.MenuRowServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.MenuRowServiceSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuRowService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.IDServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.NotUniqServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ValidateException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -14,6 +18,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 //CRUD controller
@@ -31,7 +38,7 @@ public class MenuRowServlet extends HttpServlet {
 
     public MenuRowServlet() {
         this.service = MenuRowServiceSingleton.getInstance();
-        this.mapper = new ObjectMapper();
+        this.mapper = ObjectMapperSingleton.getInstance();
     }
 
     //Read POSITION
@@ -47,33 +54,30 @@ public class MenuRowServlet extends HttpServlet {
 
         PrintWriter writer = resp.getWriter();
 
-        if (queryString == null) {
+        try {
+            if (queryString == null) {
 
-            List<MenuRowDto> items = service.get();
+                List<MenuRowDto> items = service.get();
 
-            writer.write(this.mapper.writeValueAsString(items));
+                writer.write(this.mapper.writeValueAsString(items));
 
-        } else {
+            } else {
 
-            String idParam = req.getParameter(ID);
 
-            long id;
+                long id = Integer.parseInt(req.getParameter(ID));
 
-            try {
-                id = Integer.parseInt(idParam);
-            } catch (NumberFormatException e) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-
-            MenuRowDto item = service.read(id);
-
-            try {
+                MenuRowDto item = service.read(id);
                 writer.write(this.mapper.writeValueAsString(item));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             }
+        } catch (NumberFormatException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException | IOException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         }
+
+
     }
 
 
@@ -85,30 +89,22 @@ public class MenuRowServlet extends HttpServlet {
         resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
-
-        MenuRowDto menuRowDto;
         try {
-            menuRowDto = this.mapper.readValue(req.getInputStream(), MenuRowDto.class);
-        }catch (Exception e){
+
+            MenuRowDto menuRowDto = this.mapper.readValue(req.getInputStream(), MenuRowDto.class);
+            MenuRowDto menuRow = service.create(menuRowDto);
+            resp.getWriter().write(this.mapper.writeValueAsString(menuRow));
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
+        } catch (ValidateException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        MenuRowDto menuRowDtoOut;
-
-        try {
-            menuRowDtoOut = this.service.create(menuRowDto);
         } catch (ServiceException e) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            return;
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (IDServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);//?
         }
-
-        PrintWriter writer = resp.getWriter();
-
-        writer.write(this.mapper.writeValueAsString(menuRowDtoOut));
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
 
     }
 
@@ -122,25 +118,29 @@ public class MenuRowServlet extends HttpServlet {
         resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
+            long id = Integer.parseInt(req.getParameter(ID));
+            MenuRowDto menuRowDto = this.mapper.readValue(req.getInputStream(), MenuRowDto.class);
+
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(
+                            Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC")
+            );
+
+            MenuRowDto menuRow = service.update(id, dtUpdate, menuRowDto);
+            resp.getWriter().write(this.mapper.writeValueAsString(menuRow));
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
+        } catch (ValidateException | IllegalArgumentException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
+        } catch (IDServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         }
-
-        MenuRowDto itemDto = this.mapper.readValue(req.getInputStream(), MenuRowDto.class);
-
-        service.update(id, update, itemDto);
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
     }
 
     //DELETE POSITION
@@ -150,19 +150,18 @@ public class MenuRowServlet extends HttpServlet {
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding(CHARSET);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+            long id = Integer.parseInt(req.getParameter(ID));
 
-        service.delete(id, update);
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC")
+            );
+            service.delete(id, dtUpdate);
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 }

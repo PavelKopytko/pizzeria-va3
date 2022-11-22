@@ -2,9 +2,8 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.StageDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.StageServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.StageServiceSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IStageService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -66,13 +65,13 @@ public class StageServlet extends HttpServlet {
                 return;
             }
 
-            StageDto items = stageService.read(id);
-
-            try {
-                writer.write(this.mapper.writeValueAsString(items));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            }
+//            StageDto items = stageService.read(id);
+//
+//            try {
+//                writer.write(this.mapper.writeValueAsString(items));
+//            } catch (IOException e) {
+//                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+//            }
         }
     }
 
@@ -96,15 +95,15 @@ public class StageServlet extends HttpServlet {
 
         StageDto stageDtoOut;
 
-        try {
-            stageDtoOut = this.stageService.create(stageDto);
-        } catch (ServiceException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            stageDtoOut = this.stageService.create(stageDto);
+//        } catch (ServiceException e) {
+//            throw new RuntimeException(e);
+//        }
 
         PrintWriter writer = resp.getWriter();
 
-        writer.write(this.mapper.writeValueAsString(stageDtoOut));
+//        writer.write(this.mapper.writeValueAsString(stageDtoOut));
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
 

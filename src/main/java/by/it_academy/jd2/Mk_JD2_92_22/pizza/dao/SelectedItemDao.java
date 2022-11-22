@@ -1,7 +1,7 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.ISelectedItem;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.ISelectedItemDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.SelectedItemMapper;
 

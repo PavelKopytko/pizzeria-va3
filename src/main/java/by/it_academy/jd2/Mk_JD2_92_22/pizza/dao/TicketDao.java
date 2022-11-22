@@ -1,7 +1,9 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Order;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Ticket;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.ITicket;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.ITicketDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.TicketMapper;
 
@@ -40,10 +42,11 @@ public class TicketDao implements ITicketDao {
             "\tFROM structure.ticket tc\n" +
             "\tINNER JOIN structure.order_t o ON o.id = tc.order_id;";
 
-    private static final String DELETE_SQL = "DELETE FROM structure.ticket\n" +
+    private final static String DELETE_SQL = "DELETE FROM structure.ticket\n" +
             "\tWHERE id = ? and dt_update = ?;";
+    private final static String IS_EXISTS = "SELECT EXISTS(SELECT 1 FROM structure.ticket WHERE id = ? );";
 
-    private static final String ID = "id";
+    private final static String ID = "id";
 
     private final DataSource ds;
 
@@ -55,32 +58,30 @@ public class TicketDao implements ITicketDao {
     public ITicket create(ITicket item) throws DaoException {
 
         ITicket ticket;
-        try {
-            try (Connection con = ds.getConnection();
-                 PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                stm.setObject(1, item.getDtCreate());
-                stm.setObject(2, item.getDtUpdate());
-                stm.setString(3, item.getNumber());
-                stm.setLong(4, item.getOrder().getId());
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                int updated = stm.executeUpdate();
+            stm.setObject(1, item.getDtCreate());
+            stm.setObject(2, item.getDtUpdate());
+            stm.setString(3, item.getNumber());
+            stm.setLong(4, item.getOrder().getId());
 
-                ResultSet rs = stm.getGeneratedKeys();
-                rs.next();
-                ticket = read(rs.getLong(ID));
+            int updated = stm.executeUpdate();
 
-            } catch (SQLException e) {
-                throw new RuntimeException("При сохранении данных произошла ошибка", e);
-            }
-        } catch (Exception e) {
-            throw new DaoException(e);
+            ResultSet rs = stm.getGeneratedKeys();
+            rs.next();
+            ticket = read(rs.getLong(ID));
+
+        } catch (SQLException e) {
+            throw new DaoException("При сохранении данных произошла ошибка", e);
         }
+
         return ticket;
     }
 
     @Override
-    public ITicket read(long id) {
+    public ITicket read(long id) throws DaoException {
 
         ITicket ticket;
 
@@ -91,17 +92,17 @@ public class TicketDao implements ITicketDao {
 
             try (ResultSet rs = stm.executeQuery()) {
                 rs.next();
-                ticket = TicketMapper.mapper(rs);
+                ticket = mapper(rs);
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
         return ticket;
     }
 
     @Override
-    public List<ITicket> get() {
+    public List<ITicket> get() throws DaoException {
 
         List<ITicket> tickets = new ArrayList<>();
 
@@ -115,13 +116,14 @@ public class TicketDao implements ITicketDao {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
+
         return tickets;
     }
 
     @Override
-    public void delete(long id, LocalDateTime dtUpdate) {
+    public void delete(long id, LocalDateTime dtUpdate) throws DaoException {
 
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
@@ -139,7 +141,38 @@ public class TicketDao implements ITicketDao {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("При удалении данных произошла ошибка", e);
+            throw new DaoException("При удалении данных произошла ошибка", e);
         }
+    }
+
+    @Override
+    public boolean isExist(long id) throws DaoException {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement statement = connection.prepareStatement(IS_EXISTS);
+        ) {
+            statement.setLong(1, id);
+            try (ResultSet rs = statement.executeQuery();) {
+                rs.next();
+                return rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            throw new DaoException("При чтении данных произошла ошибка", e);
+        }
+    }
+
+    private ITicket mapper(ResultSet rs) throws SQLException {
+        Order order = new Order(
+                rs.getLong("o_id"),
+                rs.getObject("o_dt_create", LocalDateTime.class),
+                rs.getObject("o_dt_update", LocalDateTime.class)
+        );
+
+        return new Ticket(
+                rs.getLong("tc_id"),
+                rs.getObject("tc_dt_create", LocalDateTime.class),
+                rs.getObject("tc_dt_update", LocalDateTime.class),
+                rs.getString("number"),
+                order
+        );
     }
 }

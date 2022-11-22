@@ -2,7 +2,9 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.PizzaInfo;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IPizzaInfo;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IPizzaInfoDao;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.NotUniqDaoException;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -23,16 +25,16 @@ public class PizzaInfoDao implements IPizzaInfoDao {
     private final static String SELECT_SQL = "SELECT id, dt_create, dt_update, name, description, size\n" +
             "\tFROM structure.pizza_info;";
 
-    private static final String UPDATE_SQL = "UPDATE structure.pizza_info\n" +
+    private final static String UPDATE_SQL = "UPDATE structure.pizza_info\n" +
             "\tSET dt_update=?, name=?, description=?, size=?\n" +
             "\tWHERE id =? and dt_update = ?;";
 
-    private static final String DELETE_SQL = "DELETE FROM structure.pizza_info\n" +
+    private final static String DELETE_SQL = "DELETE FROM structure.pizza_info\n" +
             "\tWHERE id = ? and dt_update = ?;";
 
-    private static final String UNIQ_ERROR_CODE = "23505";
-    private static final String PIZZA_INFO_NAME_SIZE_UNIQ = "pizza_info_name_size_uniq";
-
+    private final static String UNIQ_ERROR_CODE = "23505";
+    private final static String PIZZA_INFO_NAME_SIZE_UNIQ = "pizza_info_name_size_uniq";
+    private final static String ID = "id";
     private final DataSource ds;
 
     public PizzaInfoDao(DataSource ds) {
@@ -40,89 +42,88 @@ public class PizzaInfoDao implements IPizzaInfoDao {
     }
 
     @Override
-    public IPizzaInfo create(IPizzaInfo item) {
-
-        IPizzaInfo pizzaInfo = null;
-        try {
-            try (Connection con = ds.getConnection();
-                 PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
-
-                stm.setObject(1, item.getDtCreate());
-                stm.setObject(2, item.getDtUpdate());
-                stm.setString(3, item.getName());
-                stm.setString(4, item.getDescription());
-                stm.setLong(5, item.getSize());
-
-                int updated = stm.executeUpdate();
-
-                ResultSet rs = stm.getGeneratedKeys();
-                rs.next();
-                pizzaInfo = read(rs.getLong("id"));
-
-            } catch (SQLException e) {
-                if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
-                    if (e.getMessage().contains(PIZZA_INFO_NAME_SIZE_UNIQ)) {
-                        throw new RuntimeException("Ошибка, такое название и размер уже существуют");
-                    }
-                }
-            }
-        } catch (Exception e){
-            throw new RuntimeException(e);
-        }
-        return pizzaInfo;
-    }
-
-    @Override
-    public IPizzaInfo read(long id) {
+    public IPizzaInfo create(IPizzaInfo item) throws NotUniqDaoException, DaoException {
 
         IPizzaInfo pizzaInfo = null;
 
         try (Connection con = ds.getConnection();
-             PreparedStatement stm = con.prepareStatement(SELECT_BY_ID_SQL);) {
+             PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-            stm.setObject(1, id);
+            stm.setObject(1, item.getDtCreate());
+            stm.setObject(2, item.getDtUpdate());
+            stm.setString(3, item.getName());
+            stm.setString(4, item.getDescription());
+            stm.setLong(5, item.getSize());
 
-            try (ResultSet rs = stm.executeQuery()) {
-                rs.next();
-                pizzaInfo = mapper(rs);
+            int updated = stm.executeUpdate();
+
+            try (ResultSet rs = stm.getGeneratedKeys()) {
+                while (rs.next()) {
+                    pizzaInfo = read(rs.getLong(ID));
+                }
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                if (e.getMessage().contains(PIZZA_INFO_NAME_SIZE_UNIQ)) {
+                    throw new NotUniqDaoException("Ошибка, такое название и размер уже существуют");
+                }
+            } else {
+                throw new DaoException("При сохранении данных произошла ошибка", e);
+            }
         }
-
-
         return pizzaInfo;
     }
 
     @Override
-    public List<IPizzaInfo> get() {
+    public IPizzaInfo read(long id) throws DaoException {
+
+        IPizzaInfo pizzaInfo = null;
+
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(SELECT_BY_ID_SQL)
+        ) {
+            stm.setObject(1, id);
+
+            try (ResultSet rs = stm.executeQuery()) {
+                while (rs.next()) {
+                    pizzaInfo = mapper(rs);
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new DaoException("При чтении данных произошла ошибка", e);
+        }
+        return pizzaInfo;
+    }
+
+    @Override
+    public List<IPizzaInfo> get() throws DaoException {
 
         List<IPizzaInfo> pizzaInfo = new ArrayList<>();
 
         try (Connection con = ds.getConnection();
-             PreparedStatement stm = con.prepareStatement(SELECT_SQL);) {
+             PreparedStatement stm = con.prepareStatement(SELECT_SQL)
+        ) {
 
             try (ResultSet rs = stm.executeQuery();) {
                 while (rs.next()) {
                     pizzaInfo.add(mapper(rs));
                 }
             }
-
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
-
 
         return pizzaInfo;
     }
 
     @Override
-    public IPizzaInfo update(long id, LocalDateTime dtUpdate, IPizzaInfo item) {
-        IPizzaInfo pizzaInfo = null;
+    public IPizzaInfo update(long id, LocalDateTime dtUpdate, IPizzaInfo item) throws DaoException, NotUniqDaoException {
 
         try (Connection con = ds.getConnection();
-             PreparedStatement stm = con.prepareStatement(UPDATE_SQL, Statement.RETURN_GENERATED_KEYS);) {
+             PreparedStatement stm = con.prepareStatement(UPDATE_SQL, Statement.RETURN_GENERATED_KEYS)
+        ) {
 
             stm.setObject(1, item.getDtUpdate());
             stm.setString(2, item.getName());
@@ -143,14 +144,19 @@ public class PizzaInfoDao implements IPizzaInfoDao {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При сохранении данных произошла ошибка", e);
+            if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                if (e.getMessage().contains(PIZZA_INFO_NAME_SIZE_UNIQ)) {
+                    throw new NotUniqDaoException("Ошибка, такое меню уже существует", e);
+                }
+            } else {
+                throw new DaoException("При сохранении данных произошла ошибка", e);
+            }
         }
-
         return read(id);
     }
 
     @Override
-    public void delete(long id, LocalDateTime dtUpdate) {
+    public void delete(long id, LocalDateTime dtUpdate) throws DaoException {
 
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
@@ -168,9 +174,8 @@ public class PizzaInfoDao implements IPizzaInfoDao {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("При удалении данных произошла ошибка", e);
+            throw new DaoException("При удалении данных произошла ошибка", e);
         }
-
     }
 
     private IPizzaInfo mapper(ResultSet rs) throws SQLException {

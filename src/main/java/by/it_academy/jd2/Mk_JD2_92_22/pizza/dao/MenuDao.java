@@ -2,9 +2,9 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Menu;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenu;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.NotUniqDaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.NotUniqDaoException;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -17,7 +17,6 @@ public class MenuDao implements IMenuDao {
     private final static String INSERT_SQL = "INSERT INTO structure.menu" +
             "(dt_create, dt_update, name, enable)\n" +
             "\tVALUES (?, ?, ?, ?);";
-
     private final static String SELECT_BY_ID_SQL = "SELECT id, dt_create, dt_update, name, enable " +
             "FROM structure.menu " +
             "WHERE id=?;";
@@ -32,11 +31,9 @@ public class MenuDao implements IMenuDao {
     private final static String DELETE_SQL = "DELETE FROM structure.menu\n" +
             "\tWHERE id = ? and dt_update = ?;";
 
-    private final static String IS_EXISTS = "SELECT EXISTS(SELECT 1 FROM structure.menu WHERE id = ? );";
-
-    private static final String UNIQ_ERROR_CODE = "23505";
-
-    private static final String MENU_NAME_UNIQ = "menu_name_uniq";
+    private final static String UNIQ_ERROR_CODE = "23505";
+    private final static String MENU_NAME_UNIQ = "menu_name_uniq";
+    private final static String ID = "id";
 
     private final DataSource ds;
 
@@ -59,10 +56,11 @@ public class MenuDao implements IMenuDao {
 
             int updated = stm.executeUpdate();
 
-            ResultSet rs = stm.getGeneratedKeys();
-            rs.next();
-            menu = read(rs.getLong(1));
-
+            try (ResultSet rs = stm.getGeneratedKeys()) {
+                while (rs.next()) {
+                    menu = read(rs.getLong(ID));
+                }
+            }
         } catch (SQLException e) {
             if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
                 if (e.getMessage().contains(MENU_NAME_UNIQ)) {
@@ -117,9 +115,7 @@ public class MenuDao implements IMenuDao {
     }
 
     @Override
-    public IMenu update(long id, LocalDateTime dtUpdate, IMenu item) throws DaoException {
-
-        IMenu iMenu = null;
+    public IMenu update(long id, LocalDateTime dtUpdate, IMenu item) throws DaoException, NotUniqDaoException {
 
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(UPDATE_SQL, Statement.RETURN_GENERATED_KEYS)
@@ -142,13 +138,20 @@ public class MenuDao implements IMenuDao {
                 }
             }
         } catch (SQLException e) {
-            throw new DaoException("При сохранении данных произошла ошибка", e);
+            if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                if (e.getMessage().contains(MENU_NAME_UNIQ)) {
+                    throw new NotUniqDaoException("Ошибка, такое меню уже существует", e);
+                }
+            } else {
+                throw new DaoException("При сохранении данных произошла ошибка", e);
+            }
         }
         return read(id);
     }
 
     @Override
     public void delete(long id, LocalDateTime dtUpdate) throws DaoException {
+
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
         ) {
@@ -169,19 +172,6 @@ public class MenuDao implements IMenuDao {
         }
     }
 
-    public boolean isExist(long id) throws DaoException {
-        try (Connection connection = ds.getConnection();
-             PreparedStatement statement = connection.prepareStatement(IS_EXISTS);
-        ) {
-            statement.setLong(1, id);
-            try (ResultSet rs = statement.executeQuery();) {
-                rs.next();
-                return rs.getBoolean(1);
-            }
-        } catch (SQLException e) {
-            throw new DaoException("При чтении данных произошла ошибка", e);
-        }
-    }
 
     private IMenu mapper(ResultSet rs) throws SQLException {
         return new Menu(

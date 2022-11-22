@@ -42,10 +42,20 @@ public class Menu implements IMenu {
         this.enable = enable;
     }
 
+    public Menu(long id, LocalDateTime dtUpdate, String name, boolean enable) {
+        this.id = id;
+        this.dtUpdate = dtUpdate;
+        this.name = name;
+        this.enable = enable;
+    }
 
     @Override
     public long getId() {
         return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     @Override

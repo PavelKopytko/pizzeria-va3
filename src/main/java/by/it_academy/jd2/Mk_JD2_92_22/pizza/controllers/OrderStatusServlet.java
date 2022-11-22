@@ -2,9 +2,8 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.SelectedItemDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.SelectedItemServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.SelectedItemServiceSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ISelectedItemService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -64,13 +63,13 @@ public class OrderStatusServlet extends HttpServlet {
                 return;
             }
 
-            SelectedItemDto selectedItemDto = service.read(id);
+//            SelectedItemDto selectedItemDto = service.read(id);
 
-            try {
-                writer.write(this.mapper.writeValueAsString(selectedItemDto));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            }
+//            try {
+//                writer.write(this.mapper.writeValueAsString(selectedItemDto));
+//            } catch (IOException e) {
+//                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+//            }
         }
     }
 
@@ -92,16 +91,16 @@ public class OrderStatusServlet extends HttpServlet {
 
         SelectedItemDto dtoOut;
 
-        try {
-            dtoOut = this.service.create(dto);
-        } catch (ServiceException e) {
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            return;
-        }
+//        try {
+//            dtoOut = this.service.create(dto);
+//        } catch (ServiceException e) {
+//            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+//            return;
+//        }
 
         PrintWriter writer = resp.getWriter();
 
-        writer.write(this.mapper.writeValueAsString(dtoOut));
+//        writer.write(this.mapper.writeValueAsString(dtoOut));
 
         resp.setStatus(HttpServletResponse.SC_CREATED);
 

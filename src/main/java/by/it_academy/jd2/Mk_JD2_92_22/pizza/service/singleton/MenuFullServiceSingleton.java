@@ -1,9 +1,8 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.MenuFullDaoSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuFullMapper;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuRowMapper;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.PizzaInfoMapper;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.MenuFullService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuFullService;
 
 public class MenuFullServiceSingleton {
@@ -14,8 +13,8 @@ public class MenuFullServiceSingleton {
     public MenuFullServiceSingleton() {
             this.service = new MenuFullService(
                     MenuFullDaoSingleton.getInstance(),
-                    new MenuFullMapper(),
-                    new MenuRowMapper(new PizzaInfoMapper()));
+                    PizzaInfoServiceSingleton.getInstance(),
+                    new MenuFullMapper());
     }
 
     public static IMenuFullService getInstance() {

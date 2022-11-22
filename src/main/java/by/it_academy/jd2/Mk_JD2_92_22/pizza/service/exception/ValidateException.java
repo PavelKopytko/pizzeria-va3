@@ -1,4 +1,4 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception;
 
 public class ValidateException extends Exception {
 

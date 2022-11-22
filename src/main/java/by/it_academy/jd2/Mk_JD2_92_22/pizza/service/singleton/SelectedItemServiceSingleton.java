@@ -1,9 +1,10 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.MenuRowDaoSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.OrderDaoSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.SelectedItemDaoSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.TicketDaoSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.SelectedItemService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ISelectedItemService;
 
 public class SelectedItemServiceSingleton {

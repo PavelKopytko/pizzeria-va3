@@ -3,18 +3,16 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.StageDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IStage;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IStageDao;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.StageMapper;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IStageService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StageService implements IStageService {
+public class StageService implements IStageService<StageDto> {
 
     private IStageDao stageDao;
 
@@ -23,23 +21,28 @@ public class StageService implements IStageService {
     }
 
     @Override
-    public StageDto create(StageDto item) throws ServiceException {
+    public StageDto create(StageDto item) {
         try {
             validate(item);
 
-            IStage stage = stageDao.create(StageMapper.mapperDtoToEntity(item));
+            IStage stage = (IStage) stageDao.create(StageMapper.mapperDtoToEntity(item));
 
             return StageMapper.mapperDto(stage);
 
-        } catch (IllegalStateException | IllegalArgumentException | DaoException e) {
-            throw new ServiceException(e);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
     public StageDto read(long id) {
 
-        IStage stage = stageDao.read(id);
+        IStage stage = null;
+        try {
+            stage = (IStage) stageDao.read(id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         return StageMapper.mapperDto(stage);
     }
@@ -49,9 +52,13 @@ public class StageService implements IStageService {
 
         List<StageDto> stageDto = new ArrayList<>();
 
-        for (IStage stage : stageDao.get()) {
-            stageDto.add(StageMapper.mapperDto(stage));
-        }
+//        try {
+//            for (Object stage : stageDao.get()) {
+//                //stageDto.add(StageMapper.mapperDto(stage));
+//            }
+//        } catch (RuntimeException e) {
+//            throw new RuntimeException(e);
+//        }
 
         return stageDto;
     }
@@ -60,7 +67,7 @@ public class StageService implements IStageService {
     public StageDto update(long id, long dtUpdate, StageDto item) {
         LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(dtUpdate, 0, ZoneOffset.UTC);
 
-        IStage readed = stageDao.read(id);
+        IStage readed = (IStage) stageDao.read(id);
 
         if (readed == null) {
             throw new IllegalArgumentException("Инфо не найдено");

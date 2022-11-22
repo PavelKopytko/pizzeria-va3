@@ -1,107 +1,154 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
 
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuRowDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenu;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.PizzaInfoDto;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenuRow;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IPizzaInfo;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuRowDao;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.NotUniqDaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuMapper;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuRowMapper;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.PizzaInfoMapper;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuRowService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuService;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IPizzaInfoService;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.IDServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.NotUniqServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ValidateException;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MenuRowService implements IMenuRowService {
 
     private IMenuRowDao menuRowDao;
+    private IPizzaInfoService pizzaInfoService;
+    private IMenuService menuService;
+    private MenuRowMapper menuRowMapper;
+    private PizzaInfoMapper pizzaInfoMapper = new PizzaInfoMapper();//
+    private MenuMapper menuMapper = new MenuMapper();// get из MenuRowMapper
 
-    public MenuRowService(IMenuRowDao menuRowDao) {
+    public MenuRowService(IMenuRowDao menuRowDao, IPizzaInfoService pizzaInfoService, IMenuService menuService, MenuRowMapper menuRowMapper) {
         this.menuRowDao = menuRowDao;
+        this.pizzaInfoService = pizzaInfoService;
+        this.menuService = menuService;
+        this.menuRowMapper = menuRowMapper;
     }
 
     @Override
-    public MenuRowDto create(MenuRowDto item) throws ServiceException {
+    public MenuRowDto create(MenuRowDto item) throws ValidateException, ServiceException, NotUniqServiceException, IDServiceException {
+        MenuRowDto itemDto;
+
         try {
             validate(item);
 
-            IPizzaInfo pizzaInfo = null;
-            IMenu menu = null;
+            PizzaInfoDto pizzaInfoDto = pizzaInfoService.read(item.getInfoId());
+            MenuDto menuDto = menuService.read(item.getMenuId());
 
-            List<IMenuRow> menuRows = menuRowDao.get();
-            for (IMenuRow menuRow : menuRows) {
-                if (item.getInfoId() == menuRow.getInfo().getId()) {
-                    pizzaInfo = menuRow.getInfo();
-                }
-                if (item.getMenuId() == menuRow.getMenu().getId()) {
-                    menu = menuRow.getMenu();
-                }
-            }
+            IMenuRow menuRow = menuRowDao.create(menuRowMapper.mapper(item, pizzaInfoDto, menuDto));
 
-            IMenuRow menuRow = menuRowDao.create(MenuRowMapper.mapperDtoToEntity(item, pizzaInfo, menu));
+            itemDto = this.menuRowMapper.mapperDto(menuRow);
 
-            return new MenuRowMapper(new PizzaInfoMapper()).mapperDto(menuRow);//MenuRowMapper.mapperDto(menuRow);
-
-        } catch (IllegalStateException | IllegalArgumentException | DaoException e) {
-            throw new ServiceException(e);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw new ValidateException(e.getMessage(), e);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        } catch (NotUniqDaoException e) {
+            throw new NotUniqServiceException(e.getMessage(), e);
         }
+
+        return itemDto;
     }
 
     @Override
-    public MenuRowDto read(long id) {
+    public MenuRowDto read(long id) throws IDServiceException, ServiceException {
+        MenuRowDto menuRowDto;
 
-        IMenuRow menuRow = menuRowDao.read(id);
+        try {
+            IMenuRow menuRow = menuRowDao.read(id);
+            if (menuRow == null) {
+                throw new IDServiceException("Информация не найдена");
+            }
+            menuRowDto = menuRowMapper.mapperDto(menuRow);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
 
-        return null;//MenuRowMapper.mapperDto(menuRow);
+        return menuRowDto;
 
     }
 
     @Override
-    public List<MenuRowDto> get() {
+    public List<MenuRowDto> get() throws ServiceException {
 
         List<MenuRowDto> menuRowDtos = new ArrayList<>();
 
-//        for (IMenuRow menuRow : menuRowDao.get()) {
-//            menuRowDtos.add(MenuRowMapper.mapperDto(menuRow));
-//        }
-
+        try {
+            List<IMenuRow> menuRows = menuRowDao.get();
+            if (!menuRows.isEmpty()) {
+                for (IMenuRow menuRow : menuRows) {
+                    menuRowDtos.add(menuRowMapper.mapperDto(menuRow));
+                }
+            } else {
+                throw new IllegalArgumentException("Нет доступных pizzaInfo");
+            }
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
         return menuRowDtos;
     }
 
     @Override
-    public MenuRowDto update(long id, long dtUpdate, MenuRowDto item) {
-        LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(dtUpdate, 0, ZoneOffset.UTC);
+    public MenuRowDto update(long id, LocalDateTime dtUpdate, MenuRowDto item) throws ValidateException, ServiceException, NotUniqServiceException,IDServiceException {
 
-        IMenuRow readed = menuRowDao.read(id);
+        IMenuRow readed;
+//        IMenuRow menuRow;
+        MenuRowDto menuRowDto;
+        try {
+            validate(item);
 
-        if (readed == null) {
-            throw new IllegalArgumentException("Строка меню не найдена");
+            readed = menuRowDao.read(id);
+            if (readed == null) {
+                throw new IllegalArgumentException("Строка меню не найдена");
+            }
+            if (!readed.getDtUpdate().isEqual(dtUpdate)) {
+                throw new IllegalArgumentException("К сожалению инфо уже было отредактировано кем-то другим");
+            }
+
+            PizzaInfoDto pizzaInfoDto = pizzaInfoService.read(item.getInfoId());
+            MenuDto menuDto = menuService.read(item.getMenuId());
+
+            readed.setDtUpdate(LocalDateTime.now());
+            readed.setInfo(pizzaInfoMapper.mapperToEntity(pizzaInfoDto));
+            readed.setPrice(item.getPrice());
+            readed.setMenu(menuMapper.mapperToEntity(menuDto));
+
+            IMenuRow menuRow = menuRowDao.update(id, dtUpdate, readed);
+            menuRowDto = menuRowMapper.mapperDto(menuRow);
+
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            throw new ValidateException(e.getMessage(), e);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        } catch (NotUniqDaoException e) {
+            throw new NotUniqServiceException(e.getMessage(), e);
         }
-        if (readed.getDtUpdate().toEpochSecond(ZoneOffset.UTC) != dtUpdate) {
-            throw new IllegalArgumentException("К сожалению инфо уже было отредактировано кем-то другим");
-        }
 
-        readed.setDtUpdate(LocalDateTime.now());
-        readed.setInfo(readed.getInfo());
-        readed.setPrice(item.getPrice());
-        readed.setMenu(readed.getMenu());
-
-        menuRowDao.update(id, localDateTime, readed);
-
-        return null;//MenuRowMapper.mapperDto(readed);
+        return menuRowDto;
     }
 
     @Override
-    public void delete(long id, long dtUpdate) {
+    public void delete(long id, LocalDateTime dtUpdate) throws ServiceException {
 
-        LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(dtUpdate, 0, ZoneOffset.UTC);
-
-        menuRowDao.delete(id, localDateTime);
+        try {
+            menuRowDao.delete(id, dtUpdate);
+        } catch (DaoException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
 
     }
 
@@ -118,17 +165,23 @@ public class MenuRowService implements IMenuRowService {
         if (item.getMenuId() <= 0) {
             throw new IllegalArgumentException("Вы не указали меню");
         }
-        List<IMenuRow> menuRows = menuRowDao.get();
+//        List<IMenuRow> menuRows = null;
 
-        int count = 0;
-
-        for (IMenuRow menuRow : menuRows) {
-            if (item.getInfoId() == menuRow.getInfo().getId()) {
-                count++;
-            }
-        }
-        if (count == 0) {
-            throw new IllegalArgumentException("Вы указали неверный номер инфы");
-        }
+//        try {
+//            menuRows = menuRowDao.get();
+//        } catch (DaoException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        int count = 0;
+//
+//        for (IMenuRow menuRow : menuRows) {
+//            if (item.getInfoId() == menuRow.getInfo().getId()) {
+//                count++;
+//            }
+//        }
+//        if (count == 0) {
+//            throw new IllegalArgumentException("Вы указали неверный номер инфы");
+//        }
     }
 }

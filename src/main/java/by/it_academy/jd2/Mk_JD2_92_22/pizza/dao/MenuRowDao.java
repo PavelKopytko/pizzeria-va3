@@ -1,9 +1,12 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Menu;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.MenuRow;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.PizzaInfo;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IMenuRow;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IMenuRowDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuRowMapper;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.NotUniqDaoException;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -56,16 +59,15 @@ public class MenuRowDao implements IMenuRowDao {
             "\tINNER JOIN structure.pizza_info pi ON mr.info =pi.id\n" +
             "\tINNER JOIN structure.menu menu ON mr.menu=menu.id;";
 
-    private static final String UPDATE_SQL = "UPDATE structure.menu_row\n" +
+    private final static String UPDATE_SQL = "UPDATE structure.menu_row\n" +
             "\tSET dt_update=?, info=?, price=?, menu=?\n" +
             "\tWHERE id =? and dt_update = ?;";
 
-    private static final String DELETE_SQL = "DELETE FROM structure.menu_row\n" +
+    private final static String DELETE_SQL = "DELETE FROM structure.menu_row\n" +
             "\tWHERE id = ? and dt_update = ?;";
-
-    private static final String UNIQ_ERROR_CODE = "23505";
-    private static final String MENU_ROW_INFO_MENU_UNIQ = "menu_row_info_menu_uniq";
-
+    private final static String UNIQ_ERROR_CODE = "23505";
+    private final static String MENU_ROW_INFO_MENU_UNIQ = "menu_row_info_menu_uniq";
+    private final static String ID = "id";
     private final DataSource ds;
 
     public MenuRowDao(DataSource ds) {
@@ -73,42 +75,43 @@ public class MenuRowDao implements IMenuRowDao {
     }
 
     @Override
-    public IMenuRow create(IMenuRow item) throws DaoException {
+    public IMenuRow create(IMenuRow item) throws DaoException, NotUniqDaoException {
 
         IMenuRow menuRow = null;
-        try {
-            try (Connection con = ds.getConnection();
-                 PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                stm.setObject(1, item.getDtCreate());
-                stm.setObject(2, item.getDtUpdate());
-                stm.setLong(3, item.getInfo().getId());
-                stm.setDouble(4, item.getPrice());
-                stm.setLong(5, item.getMenu().getId());
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                int updated = stm.executeUpdate();
+            stm.setObject(1, item.getDtCreate());
+            stm.setObject(2, item.getDtUpdate());
+            stm.setLong(3, item.getInfo().getId());
+            stm.setDouble(4, item.getPrice());
+            stm.setLong(5, item.getMenu().getId());
 
-                ResultSet rs = stm.getGeneratedKeys();
-                rs.next();
-                menuRow = read(rs.getLong("id"));
+            int updated = stm.executeUpdate();
 
-            } catch (SQLException e) {
-                if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
-                    if (e.getMessage().contains(MENU_ROW_INFO_MENU_UNIQ)) {
-                        throw new RuntimeException("Ошибка, такая строка меню уже существует");
-                    }
+            try (ResultSet rs = stm.getGeneratedKeys()) {
+                while (rs.next()) {
+                    menuRow = read(rs.getLong(ID));
                 }
             }
-        } catch (Exception e) {
-            throw new DaoException(e);
+
+        } catch (SQLException e) {
+            if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                if (e.getMessage().contains(MENU_ROW_INFO_MENU_UNIQ)) {
+                    throw new NotUniqDaoException("Ошибка, такая строка меню уже существует");
+                }
+            } else {
+                throw new DaoException("При сохранении данных произошла ошибка", e);
+            }
         }
         return menuRow;
     }
 
     @Override
-    public IMenuRow read(long id) {
+    public IMenuRow read(long id) throws DaoException {
 
-        IMenuRow menuRow;
+        IMenuRow menuRow = null;
 
         try (Connection con = ds.getConnection();
              PreparedStatement stm = con.prepareStatement(SELECT_BY_ID_SQL)) {
@@ -116,20 +119,20 @@ public class MenuRowDao implements IMenuRowDao {
             stm.setObject(1, id);
 
             try (ResultSet rs = stm.executeQuery()) {
-                rs.next();
-                menuRow = MenuRowMapper.mapper(rs);
+                while (rs.next()) {
+                    menuRow = mapper(rs);
+                }
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
-
 
         return menuRow;
     }
 
     @Override
-    public List<IMenuRow> get() {
+    public List<IMenuRow> get() throws DaoException {
 
         List<IMenuRow> menuRows = new ArrayList<>();
 
@@ -138,20 +141,18 @@ public class MenuRowDao implements IMenuRowDao {
 
             try (ResultSet rs = stm.executeQuery()) {
                 while (rs.next()) {
-                    menuRows.add(MenuRowMapper.mapper(rs));
+                    menuRows.add(mapper(rs));
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
-
 
         return menuRows;
     }
 
     @Override
-    public IMenuRow update(long id, LocalDateTime dtUpdate, IMenuRow item) {
-        //IMenuRow menuRow = null;
+    public IMenuRow update(long id, LocalDateTime dtUpdate, IMenuRow item) throws DaoException, NotUniqDaoException {
 
         try (Connection con = ds.getConnection();
              PreparedStatement stm = con.prepareStatement(UPDATE_SQL, Statement.RETURN_GENERATED_KEYS)) {
@@ -175,14 +176,20 @@ public class MenuRowDao implements IMenuRowDao {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При сохранении данных произошла ошибка", e);
+            if (UNIQ_ERROR_CODE.equals(e.getSQLState())) {
+                if (e.getMessage().contains(MENU_ROW_INFO_MENU_UNIQ)) {
+                    throw new NotUniqDaoException("Ошибка, такая строка меню уже существует");
+                }
+            } else {
+                throw new DaoException("При сохранении данных произошла ошибка", e);
+            }
         }
 
         return read(id);
     }
 
     @Override
-    public void delete(long id, LocalDateTime dtUpdate) {
+    public void delete(long id, LocalDateTime dtUpdate) throws DaoException {
 
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
@@ -200,8 +207,35 @@ public class MenuRowDao implements IMenuRowDao {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("При удалении данных произошла ошибка", e);
+            throw new DaoException("При удалении данных произошла ошибка", e);
         }
+    }
 
+    private IMenuRow mapper(ResultSet rs) throws SQLException {
+        PizzaInfo pizzaInfo = new PizzaInfo(
+                rs.getLong("pi_id"),
+                rs.getObject("pi_dt_create", LocalDateTime.class),
+                rs.getObject("pi_dt_update", LocalDateTime.class),
+                rs.getString("pi_name"),
+                rs.getString("pi_descr"),
+                rs.getLong("pi_size")
+        );
+
+        Menu menu = new Menu(
+                rs.getLong("m_id"),
+                rs.getObject("m_dt_create", LocalDateTime.class),
+                rs.getObject("m_dt_update", LocalDateTime.class),
+                rs.getString("m_name"),
+                rs.getBoolean("m_enable")
+        );
+
+        return new MenuRow(
+                rs.getLong("menu_row_id"),
+                rs.getObject("mr_dt_create", LocalDateTime.class),
+                rs.getObject("mr_dt_update", LocalDateTime.class),
+                pizzaInfo,
+                rs.getDouble("price"),
+                menu
+        );
     }
 }

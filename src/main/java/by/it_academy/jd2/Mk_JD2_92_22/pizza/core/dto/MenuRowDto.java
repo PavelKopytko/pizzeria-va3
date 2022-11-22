@@ -7,6 +7,8 @@ public class MenuRowDto {
     private PizzaInfoDto info;
     private double price;
     private long menuId;
+    private MenuDto menu;
+
 
     public MenuRowDto() {
     }
@@ -27,11 +29,27 @@ public class MenuRowDto {
         this.price = price;
     }
 
+    public MenuRowDto(long id, long dt_update, PizzaInfoDto info, double price, long menuId) {
+        this.id = id;
+        this.dt_update = dt_update;
+        this.info = info;
+        this.price = price;
+        this.menuId = menuId;
+    }
+
     public MenuRowDto(long id, long dt_update, PizzaInfoDto info, double price) {
         this.id = id;
         this.dt_update = dt_update;
         this.info = info;
         this.price = price;
+    }
+
+    public MenuRowDto(long id, long dt_update, PizzaInfoDto info, double price, MenuDto menu) {
+        this.id = id;
+        this.dt_update = dt_update;
+        this.info = info;
+        this.price = price;
+        this.menu = menu;
     }
 
     public long getId() {
@@ -80,5 +98,13 @@ public class MenuRowDto {
 
     public void setInfo(PizzaInfoDto info) {
         this.info = info;
+    }
+
+    public MenuDto getMenu() {
+        return menu;
+    }
+
+    public void setMenu(MenuDto menu) {
+        this.menu = menu;
     }
 }

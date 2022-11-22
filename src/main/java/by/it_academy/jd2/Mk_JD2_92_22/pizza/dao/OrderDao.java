@@ -1,9 +1,9 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.dao;
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.Order;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.entity.api.IOrder;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.DaoException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.exception.DaoException;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.api.IOrderDao;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.OrderMapper;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -24,14 +24,12 @@ public class OrderDao implements IOrderDao {
     private final static String SELECT_SQL = "SELECT id o_id, dt_create o_dt_create, dt_update o_dt_update\n" +
             "\tFROM structure.order_t;";
 
-//    private static final String UPDATE_SQL = "UPDATE structure.stage\n" +
-//            "\tSET dt_update=?, description=?\n" +
-//            "\tWHERE id =? and dt_update = ?;";
+    private final static String IS_EXISTS = "SELECT EXISTS(SELECT 1 FROM structure.order_t WHERE id = ? );";
 
-    private static final String DELETE_SQL = "DELETE FROM structure.order_t\n" +
+    private final static String DELETE_SQL = "DELETE FROM structure.order_t\n" +
             "\tWHERE id = ? and dt_update = ?;";
 
-    private static final String ID = "id";
+    private final static String ID = "id";
 
     private final DataSource ds;
 
@@ -43,32 +41,30 @@ public class OrderDao implements IOrderDao {
     public IOrder create(IOrder item) throws DaoException {
 
         IOrder order;
-        try {
-            try (Connection con = ds.getConnection();
-                 PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                stm.setObject(1, item.getDtCreate());
-                stm.setObject(2, item.getDtUpdate());
+        try (Connection con = ds.getConnection();
+             PreparedStatement stm = con.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
-                int updated = stm.executeUpdate();
+            stm.setObject(1, item.getDtCreate());
+            stm.setObject(2, item.getDtUpdate());
 
-                ResultSet rs = stm.getGeneratedKeys();
-                rs.next();
-                order = read(rs.getLong(ID));
+            int updated = stm.executeUpdate();
 
-            } catch (SQLException e) {
-                throw new RuntimeException("При сохранении данных произошла ошибка", e);
-            }
-        } catch (Exception e) {
-            throw new DaoException(e);
+            ResultSet rs = stm.getGeneratedKeys();
+            rs.next();
+            order = read(rs.getLong(ID));
+
+        } catch (SQLException e) {
+            throw new DaoException("При сохранении данных произошла ошибка", e);
         }
+
         return order;
     }
 
     @Override
-    public IOrder read(long id) {
+    public IOrder read(long id) throws DaoException {
 
-        IOrder order;
+        IOrder order = null;
 
         try (Connection con = ds.getConnection();
              PreparedStatement stm = con.prepareStatement(SELECT_BY_ID_SQL)) {
@@ -76,18 +72,19 @@ public class OrderDao implements IOrderDao {
             stm.setObject(1, id);
 
             try (ResultSet rs = stm.executeQuery()) {
-                rs.next();
-                order = OrderMapper.mapper(rs);
+                while (rs.next()) {
+                    order = mapper(rs);
+                }
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
         return order;
     }
 
     @Override
-    public List<IOrder> get() {
+    public List<IOrder> get() throws DaoException {
 
         List<IOrder> orders = new ArrayList<>();
 
@@ -96,13 +93,14 @@ public class OrderDao implements IOrderDao {
 
             try (ResultSet rs = stm.executeQuery()) {
                 while (rs.next()) {
-                    orders.add(OrderMapper.mapper(rs));
+                    orders.add(mapper(rs));
                 }
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("При чтении данных произошла ошибка", e);
+            throw new DaoException("При чтении данных произошла ошибка", e);
         }
+
         return orders;
     }
 
@@ -135,7 +133,7 @@ public class OrderDao implements IOrderDao {
     }
 
     @Override
-    public void delete(long id, LocalDateTime dtUpdate) {
+    public void delete(long id, LocalDateTime dtUpdate) throws DaoException {
 
         try (Connection conn = ds.getConnection();
              PreparedStatement stm = conn.prepareStatement(DELETE_SQL, Statement.RETURN_GENERATED_KEYS)
@@ -153,7 +151,30 @@ public class OrderDao implements IOrderDao {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("При удалении данных произошла ошибка", e);
+            throw new DaoException("При удалении данных произошла ошибка", e);
         }
+    }
+
+    @Override
+    public boolean isExist(long id) throws DaoException {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement statement = connection.prepareStatement(IS_EXISTS);
+        ) {
+            statement.setLong(1, id);
+            try (ResultSet rs = statement.executeQuery();) {
+                rs.next();
+                return rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            throw new DaoException("При чтении данных произошла ошибка", e);
+        }
+    }
+
+    private IOrder mapper(ResultSet rs) throws SQLException {
+        return new Order(
+                rs.getLong("o_id"),
+                rs.getObject("o_dt_create", LocalDateTime.class),
+                rs.getObject("o_dt_update", LocalDateTime.class)
+        );
     }
 }

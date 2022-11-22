@@ -2,9 +2,8 @@ package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.SelectedItemDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.SelectedItemServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.SelectedItemServiceSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ISelectedItemService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -67,13 +66,13 @@ public class SelectedItemServlet extends HttpServlet {
                 return;
             }
 
-            SelectedItemDto selectedItemDto = service.read(id);
+//            SelectedItemDto selectedItemDto = service.read(id);
 
-            try {
-                writer.write(this.mapper.writeValueAsString(selectedItemDto));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            }
+//            try {
+//                writer.write(this.mapper.writeValueAsString(selectedItemDto));
+//            } catch (IOException e) {
+//                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+//            }
         }
     }
 
@@ -98,11 +97,11 @@ public class SelectedItemServlet extends HttpServlet {
 
         SelectedItemDto dto = null;
 
-        try {
-            dto = this.service.create(selectedItemDto);
-        } catch (ServiceException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            dto = this.service.create(selectedItemDto);
+//        } catch (ServiceException e) {
+//            throw new RuntimeException(e);
+//        }
 
         PrintWriter writer = resp.getWriter();
 

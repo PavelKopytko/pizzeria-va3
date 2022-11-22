@@ -1,6 +1,7 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.StageDaoSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.StageService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IStageService;
 
 public class StageServiceSingleton {

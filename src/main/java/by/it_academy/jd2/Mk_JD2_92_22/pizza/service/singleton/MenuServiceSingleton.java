@@ -1,6 +1,8 @@
-package by.it_academy.jd2.Mk_JD2_92_22.pizza.service;
+package by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton;
 
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.dao.singleton.MenuDaoSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.helper.mapper.MenuMapper;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.MenuService;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuService;
 
 public class MenuServiceSingleton {
@@ -10,7 +12,7 @@ public class MenuServiceSingleton {
 
     public MenuServiceSingleton() {
         //try {
-            this.menuService = new MenuService(MenuDaoSingleton.getInstance());
+            this.menuService = new MenuService(MenuDaoSingleton.getInstance(), new MenuMapper());
        // } catch (Exception e) {
            // throw new RuntimeException("Возникли проблемы с созданием слоя доступа к данным", e);
        // }

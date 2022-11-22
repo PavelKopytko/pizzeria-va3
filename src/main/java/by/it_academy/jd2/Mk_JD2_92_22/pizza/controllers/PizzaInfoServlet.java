@@ -1,10 +1,13 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers.util.mapper.ObjectMapperSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.PizzaInfoDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.PizzaInfoServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.PizzaInfoServiceSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IPizzaInfoService;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.NotUniqServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ValidateException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -14,6 +17,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 //CRUD controller
@@ -31,7 +37,7 @@ public class PizzaInfoServlet extends HttpServlet {
 
     public PizzaInfoServlet() {
         this.pizzaInfoService = PizzaInfoServiceSingleton.getInstance();
-        this.mapper = new ObjectMapper();
+        this.mapper = ObjectMapperSingleton.getInstance();
     }
 
     //Read POSITION
@@ -47,32 +53,26 @@ public class PizzaInfoServlet extends HttpServlet {
 
         PrintWriter writer = resp.getWriter();
 
-        if (queryString == null) {
+        try {
 
-            List<PizzaInfoDto> items = pizzaInfoService.get();
+            if (queryString == null) {
 
-            writer.write(this.mapper.writeValueAsString(items));
+                List<PizzaInfoDto> items = pizzaInfoService.get();
+                writer.write(mapper.writeValueAsString(items));
 
-        } else {
+            } else {
 
-            String idParam = req.getParameter(ID);
+                long id = Integer.parseInt(req.getParameter(ID));
+                PizzaInfoDto pizzaInfoDto = pizzaInfoService.read(id);
+                writer.write(mapper.writeValueAsString(pizzaInfoDto));
 
-            long id;
-
-            try {
-                id = Integer.parseInt(idParam);
-            } catch (NumberFormatException e) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
             }
-
-            PizzaInfoDto items = pizzaInfoService.read(id);
-
-            try {
-                writer.write(this.mapper.writeValueAsString(items));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            }
+        } catch (NumberFormatException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException | IOException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         }
     }
 
@@ -85,32 +85,22 @@ public class PizzaInfoServlet extends HttpServlet {
         resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
-
-        PizzaInfoDto pizzaInfoDto = null;
         try {
-            pizzaInfoDto = this.mapper.readValue(req.getInputStream(), PizzaInfoDto.class);
-        }catch (Exception e){
+            PizzaInfoDto pizzaInfoDto = mapper.readValue(req.getInputStream(), PizzaInfoDto.class);
+
+            PizzaInfoDto pizzaInfo = pizzaInfoService.create(pizzaInfoDto);
+
+            resp.getWriter().write(this.mapper.writeValueAsString(pizzaInfo));
+
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
+        } catch (ValidateException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        PizzaInfoDto pizzaInfoDtoOut = null;
-
-        try {
-            pizzaInfoDtoOut = this.pizzaInfoService.create(pizzaInfoDto);
         } catch (ServiceException e) {
-            throw new RuntimeException(e);
-            //resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            //return;
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
-
-        PrintWriter writer = resp.getWriter();
-
-        writer.write(this.mapper.writeValueAsString(pizzaInfoDtoOut));
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
-
     }
 
     //UPDATE POSITION
@@ -123,25 +113,25 @@ public class PizzaInfoServlet extends HttpServlet {
         resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
+            long id = Integer.parseInt(req.getParameter(ID));
+            PizzaInfoDto pizzaInfoDto = this.mapper.readValue(req.getInputStream(), PizzaInfoDto.class);
+
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(
+                            Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC")
+            );
+            pizzaInfoService.update(id, dtUpdate, pizzaInfoDto);
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
+        } catch (ValidateException | IllegalArgumentException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
         }
-
-        PizzaInfoDto itemDto = this.mapper.readValue(req.getInputStream(), PizzaInfoDto.class);
-
-        pizzaInfoService.update(id, update, itemDto);
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
     }
 
     //DELETE POSITION
@@ -151,19 +141,18 @@ public class PizzaInfoServlet extends HttpServlet {
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding(CHARSET);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+            long id = Integer.parseInt(req.getParameter(ID));
 
-        pizzaInfoService.delete(id, update);
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC"));
+            pizzaInfoService.delete(id, dtUpdate);
+
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 }

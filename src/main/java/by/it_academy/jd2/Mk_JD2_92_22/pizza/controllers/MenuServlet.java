@@ -1,9 +1,13 @@
 package by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers;
 
 
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.controllers.util.mapper.ObjectMapperSingleton;
 import by.it_academy.jd2.Mk_JD2_92_22.pizza.core.dto.MenuDto;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.MenuServiceSingleton;
-import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.*;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.singleton.MenuServiceSingleton;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.api.IMenuService;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.NotUniqServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ServiceException;
+import by.it_academy.jd2.Mk_JD2_92_22.pizza.service.exception.ValidateException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.servlet.ServletException;
@@ -13,6 +17,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 //CRUD controller
@@ -22,15 +29,15 @@ public class MenuServlet extends HttpServlet {
 
     private final IMenuService menuService;
     private final ObjectMapper mapper;
-    private final String CHARSET = "UTF-8";
-    private final String CONTENT_TYPE = "application/json";
-    private final String ID = "id";
-    private final String DT_UPDATE = "update";
+    private final static String CHARSET = "UTF-8";
+    private final static String CONTENT_TYPE = "application/json";
+    private final static String ID = "id";
+    private final static String DT_UPDATE = "update";
 
 
     public MenuServlet() {
         this.menuService = MenuServiceSingleton.getInstance();
-        this.mapper = new ObjectMapper();
+        this.mapper = ObjectMapperSingleton.getInstance();
     }
 
     //Read POSITION
@@ -39,55 +46,33 @@ public class MenuServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding(CHARSET);
+        resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
-
-        //mapper.registerModule(new JavaTimeModule());
-        //mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         String queryString = req.getQueryString();
 
         PrintWriter writer = resp.getWriter();
 
-        if (queryString == null) {
+        try {
 
-            List<MenuDto> menus = null;
-            try {
-                menus = menuService.get();
-            } catch (ServiceException e) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                return;
-            }
-            writer.write(this.mapper.writeValueAsString(menus));
+            if (queryString == null) {
 
-        } else {
-
-            String idParam = req.getParameter(ID);
-
-            long id;
-
-            try {
-                id = Integer.parseInt(idParam);
-            } catch (NumberFormatException e) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-
-            MenuDto menus = null;
-            try {
-                menus = menuService.read(id);
-            } catch (IDServiceException e) {
-                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
-                return;
-            } catch (ServiceException e) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                return;
-            }
-
-            try {
+                List<MenuDto> menus = menuService.get();
                 writer.write(this.mapper.writeValueAsString(menus));
-            } catch (IOException e) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+            } else {
+
+                long id = Integer.parseInt(req.getParameter(ID));
+                MenuDto menuDto = menuService.read(id);
+                writer.write(this.mapper.writeValueAsString(menuDto));
+
             }
+        } catch (NumberFormatException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException | IOException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         }
     }
 
@@ -96,41 +81,26 @@ public class MenuServlet extends HttpServlet {
     //body json
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding(CHARSET);
+        resp.setCharacterEncoding(CHARSET);
         resp.setContentType(CONTENT_TYPE);
 
-        //mapper.registerModule(new JavaTimeModule());
-        //mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        MenuDto menuDto = null;
-
         try {
-            menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
-        } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+            MenuDto menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
 
-        MenuDto menu = null;
+            MenuDto menu = this.menuService.create(menuDto);
 
-        try {
-            menu = this.menuService.create(menuDto);
+            resp.getWriter().write(this.mapper.writeValueAsString(menu));
+
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
         } catch (NotUniqServiceException e) {
             resp.setStatus(HttpServletResponse.SC_CONFLICT);
-            return;
-        } catch (ValidateException e) {
+        } catch (ValidateException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
         } catch (ServiceException e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            return;
         }
-
-        PrintWriter writer = resp.getWriter();
-
-        writer.write(this.mapper.writeValueAsString(menu));
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
     }
 
 
@@ -140,45 +110,29 @@ public class MenuServlet extends HttpServlet {
     //body json
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding(CHARSET);
+        resp.setCharacterEncoding(CHARSET);
+        resp.setContentType(CONTENT_TYPE);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
-        } catch (NumberFormatException e) {
+            long id = Integer.parseInt(req.getParameter(ID));
+            MenuDto menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
+
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(
+                            Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC")
+            );
+            menuService.update(id, dtUpdate, menuDto);
+            resp.setStatus(HttpServletResponse.SC_CREATED);
+
+        } catch (ValidateException | IllegalArgumentException | IOException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        MenuDto menuDto = null;
-
-        try {
-            menuDto = this.mapper.readValue(req.getInputStream(), MenuDto.class);
-        } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-
-        try {
-            menuService.update(id, update, menuDto);
         } catch (ServiceException e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            return;
-        } catch (IllegalArgumentException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        } catch (ValidateException e) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
+        } catch (NotUniqServiceException e) {
+            resp.setStatus(HttpServletResponse.SC_CONFLICT);
         }
-
-        resp.setStatus(HttpServletResponse.SC_CREATED);
-
     }
 
     //DELETE POSITION
@@ -186,22 +140,18 @@ public class MenuServlet extends HttpServlet {
     //need param version/date_update - optimistic lock
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding(CHARSET);
 
-        String idParam = req.getParameter(ID);
-        String updateParam = req.getParameter(DT_UPDATE);
-
-        long id;
-        long update;
         try {
-            id = Integer.parseInt(idParam);
-            update = Integer.parseInt(updateParam);
+            long id = Integer.parseInt(req.getParameter(ID));
+
+            LocalDateTime dtUpdate = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(Long.parseLong(req.getParameter(DT_UPDATE))),
+                    ZoneId.of("UTC"));
+            menuService.delete(id, dtUpdate);
+
         } catch (NumberFormatException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        try {
-            menuService.delete(id, update);
         } catch (ServiceException e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException e) {
